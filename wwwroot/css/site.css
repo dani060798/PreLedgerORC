@@ -1,0 +1,396 @@
+﻿/* ==========================================================
+   Base / Theme
+   ========================================================== */
+
+:root {
+    --bg: #ffffff;
+    --panel: #f7f7f8;
+    --panel2: #ffffff;
+    --text: #0f172a;
+    --muted: #64748b;
+    --border: rgba(15, 23, 42, 0.08);
+    --shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    --accent: #2563eb;
+    --accent2: rgba(37, 99, 235, 0.12);
+    --radius: 14px;
+    --radius2: 10px;
+}
+
+html[data-theme="dark"] {
+    /* DARK THEME: Neutrales Grau/Graphit (Kein Blau mehr!) */
+    --bg: #18181b; /* Zinc-900: Neutrales, tiefes Grau */
+    --panel: #202024; /* Etwas helleres Grau für Sidebar */
+    --panel2: #27272a; /* Panel Farbe für Cards */
+    --text: #e4e4e7; /* Gebrochenes Weiß, blendet nicht */
+    --muted: #a1a1aa;
+    --border: rgba(255, 255, 255, 0.08);
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    --accent: #818cf8;
+    --accent2: rgba(129, 140, 248, 0.15);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    line-height: 1.45;
+}
+
+/* Utility */
+.muted {
+    color: var(--muted);
+}
+
+.card-soft {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px;
+}
+
+/* ==========================================================
+   App Shell Layout
+   ========================================================== */
+
+.app-shell {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    min-height: 100vh;
+}
+
+.sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    padding: 18px 14px;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.sidebar-header {
+    padding: 4px 6px;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.brand-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--accent);
+    box-shadow: 0 0 0 6px var(--accent2);
+}
+
+.brand-title {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.brand-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 1px;
+}
+
+.sidebar-content {
+    flex: 1;
+    overflow: auto;
+    padding: 6px;
+}
+
+.sidebar-footer {
+    padding: 6px;
+}
+
+.main {
+    min-height: 100vh;
+    padding: 22px 22px 40px 22px;
+}
+
+.topbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.topbar-spacer {
+    flex: 1;
+}
+
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--text);
+    text-decoration: none;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+}
+
+    .theme-toggle:hover {
+        text-decoration: none;
+    }
+
+.theme-icon {
+    opacity: .9;
+}
+
+.theme-label {
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.content-wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 8px 0;
+}
+
+/* ==========================================================
+   Sidebar Tree (Marker fix + “first good” typography)
+   ========================================================== */
+
+/* Remove default <summary> marker (prevents double triangles) */
+details > summary {
+    list-style: none;
+}
+
+    details > summary::-webkit-details-marker {
+        display: none;
+    }
+
+    details > summary::marker {
+        content: "";
+    }
+
+/* Customer blocks */
+.tree-customer {
+    border-radius: var(--radius2);
+    margin-bottom: 8px;
+}
+
+.customer-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    cursor: context-menu;
+    user-select: none;
+}
+
+html[data-theme="dark"] .customer-row:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* “First version” feel: not bold, a bit larger, clean */
+.customer-link {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 500; /* was too bold before -> back to calm */
+    font-size: 17px; /* slightly larger than folders */
+    letter-spacing: -0.01em;
+}
+
+    .customer-link:hover {
+        text-decoration: underline;
+    }
+
+.tree-root {
+    margin: 6px 0 10px 6px;
+    padding-left: 8px;
+    border-left: 1px solid var(--border);
+}
+
+/* Caret (our own) */
+.caret {
+    width: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    transform: rotate(0deg);
+    transition: transform 120ms ease;
+    font-size: 12px;
+}
+
+details[open] > summary .caret {
+    transform: rotate(90deg);
+}
+
+/* Tree items */
+.tree-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 10px;
+    color: var(--text);
+    text-decoration: none;
+    user-select: none;
+}
+
+/* folders clickable, notes contextmenu */
+.tree-folder > summary.tree-item {
+    cursor: pointer;
+}
+
+a.tree-item {
+    cursor: pointer;
+}
+
+.tree-item:hover {
+    background: rgba(15, 23, 42, 0.04);
+}
+
+html[data-theme="dark"] .tree-item:hover {
+    background: rgba(231, 237, 247, 0.06);
+}
+
+/* Folder/Note typography: normal, readable */
+.tree-name {
+    font-size: 13.8px; /* not tiny */
+    font-weight: 450; /* calm */
+    letter-spacing: -0.005em;
+}
+
+.tree-icon {
+    opacity: .9;
+}
+
+.tree-empty {
+    padding: 6px 10px;
+    font-size: 12.8px;
+    color: var(--muted);
+}
+
+/* Drag feedback */
+.dragging {
+    opacity: 0.6;
+}
+
+.drop-over {
+    outline: 2px dashed var(--accent);
+    outline-offset: 2px;
+}
+
+/* ==========================================================
+   Context menu
+   ========================================================== */
+
+.context-menu {
+    position: absolute;
+    z-index: 9999;
+    min-width: 180px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 6px;
+}
+
+.context-item {
+    width: 100%;
+    text-align: left;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    padding: 10px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+    .context-item:hover {
+        background: rgba(15, 23, 42, 0.06);
+    }
+
+html[data-theme="dark"] .context-item:hover {
+    background: rgba(231, 237, 247, 0.08);
+}
+
+.context-item.danger {
+    color: #ef4444;
+}
+
+.context-sep {
+    height: 1px;
+    background: var(--border);
+    margin: 6px 0;
+}
+
+/* ==========================================================
+   Notes editor wrapper
+   ========================================================== */
+
+.page {
+    padding: 8px 0;
+}
+
+.page-header {
+    margin-bottom: 12px;
+}
+
+.page-title {
+    margin: 0;
+    font-size: 22px;
+    letter-spacing: -0.02em;
+}
+
+.page-sub {
+    font-size: 12.5px;
+}
+
+.note-form {
+    margin-top: 14px;
+}
+
+.editor-toolbar {
+    border: 1px solid var(--border);
+    border-radius: 12px 12px 0 0;
+    overflow: hidden;
+}
+
+.editor {
+    border: 1px solid var(--border);
+    border-top: 0;
+    border-radius: 0 0 12px 12px;
+    min-height: 360px;
+    background: var(--panel2);
+}
+
+.editor-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+/* Quill fit */
+.ql-toolbar.ql-snow,
+.ql-container.ql-snow {
+    border: none !important;
+}
+
+.ql-toolbar {
+    background: transparent;
+}

@@ -1,0 +1,47 @@
+﻿@page "/Customers/Note"
+@model PreLedgerORC.Pages.Customers.NoteModel
+
+<div class="page">
+    <div class="page-header">
+        <h2 class="page-title">@Model.NoteTitle</h2>
+        <div class="page-sub muted">@Model.RelPath</div>
+    </div>
+
+    <form method="post" class="note-form card-soft" id="noteForm">
+        @Html.AntiForgeryToken()
+
+        <input type="hidden" name="customerId" value="@Model.CustomerId" />
+        <input type="hidden" name="relPath" value="@Model.RelPath" />
+
+        <textarea id="DeltaJson" name="DeltaJson" class="d-none">@Model.DeltaJson</textarea>
+
+        <div class="editor-toolbar" id="editor-toolbar" aria-label="Editor toolbar">
+            <button type="button" class="ql-bold" aria-label="Bold"></button>
+            <button type="button" class="ql-italic" aria-label="Italic"></button>
+            <button type="button" class="ql-underline" aria-label="Underline"></button>
+            <button type="button" class="ql-link" aria-label="Link"></button>
+            <button type="button" class="ql-list" value="bullet" aria-label="Bullet list"></button>
+            <button type="button" class="ql-list" value="ordered" aria-label="Ordered list"></button>
+            <select class="ql-header" aria-label="Heading">
+                <option selected></option>
+                <option value="1"></option>
+                <option value="2"></option>
+                <option value="3"></option>
+            </select>
+            <button type="button" class="ql-clean" aria-label="Clear formatting"></button>
+        </div>
+
+        <div id="editor" class="editor" aria-label="Note editor"></div>
+
+        <div class="editor-actions">
+            <button type="submit" class="btn btn-primary">💾 Speichern</button>
+            <a class="btn btn-outline-secondary" href="/Customers/@Model.CustomerId">Zurück</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" />
+    <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+    <script src="~/js/notes-editor.js" asp-append-version="true"></script>
+}

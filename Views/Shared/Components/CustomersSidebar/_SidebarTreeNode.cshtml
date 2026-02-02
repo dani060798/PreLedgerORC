@@ -1,0 +1,73 @@
+﻿@model PreLedgerORC.Views.Shared.Components.CustomersSidebar.SidebarTreeNodeVm
+
+@{
+    var node = Model.Node;
+    var rel = (node.RelPath ?? "").Replace("\\", "/");
+    var level = string.IsNullOrWhiteSpace(rel)
+        ? 0
+        : rel.Split('/', StringSplitOptions.RemoveEmptyEntries).Length;
+
+    var pad = 10 + (level * 12);
+
+    string NodeKey(string prefix, int customerId, string relPath)
+    {
+        relPath = (relPath ?? "").Replace("\\", "/");
+        return $"{prefix}:{customerId}:{relPath}";
+    }
+}
+
+@if (node.IsFolder)
+{
+    var folderKey = NodeKey("fold", Model.CustomerId, rel);
+
+<details class="tree-folder" data-node-key="@folderKey">
+    <summary class="tree-item folder drop-target"
+             style="padding-left:@(pad)px"
+             data-node-type="folder"
+             data-customer-id="@Model.CustomerId"
+             data-customer-name="@Model.CustomerName"
+             data-relpath="@rel">
+        <span class="caret" aria-hidden="true">▸</span>
+        <span class="tree-icon" aria-hidden="true">📁</span>
+        <span class="tree-name">@node.Name</span>
+    </summary>
+
+    <div class="tree-folder-children">
+        @if (node.Children.Count == 0)
+            {
+        <div class="tree-empty muted" style="padding-left:@(pad + 12)px">(leer)</div>
+            }
+            else
+            {
+        @foreach (var child in node.Children)
+                {
+        @await Html.PartialAsync(
+                        "/Views/Shared/Components/CustomersSidebar/_SidebarTreeNode.cshtml",
+                        new PreLedgerORC.Views.Shared.Components.CustomersSidebar.SidebarTreeNodeVm
+                        {
+                            CustomerId = Model.CustomerId,
+                            CustomerName = Model.CustomerName,
+                            Node = child
+                        }
+                    )
+                }
+            }
+    </div>
+</details>
+}
+else
+{
+    var encodedRel = System.Net.WebUtility.UrlEncode(rel);
+
+<a class="tree-item note draggable-note"
+   draggable="true"
+   style="padding-left:@(pad + 14)px"
+   data-node-type="note"
+   data-customer-id="@Model.CustomerId"
+   data-customer-name="@Model.CustomerName"
+   data-relpath="@rel"
+   href="/Customers/Note?customerId=@Model.CustomerId&relPath=@encodedRel">
+    <span class="tree-icon" aria-hidden="true">📝</span>
+    <span class="tree-name">@node.Name</span>
+</a>
+}

@@ -1,0 +1,36 @@
+﻿@page "/Customers/{id:int}"
+@model PreLedgerORC.Pages.Customers.DetailsModel
+
+<div class="page">
+    <div class="page-header">
+        <h2 class="page-title">@Model.CustomerName</h2>
+        <div class="page-sub">Home · History kommt später</div>
+    </div>
+
+    <div class="card-soft">
+        <div class="card-soft-title">History (Placeholder)</div>
+        <div class="card-soft-body">
+            <p class="mb-2 muted">
+                Hier erscheinen später Scans, extrahierte Felder, Exporte und Zusammenfassungen.
+            </p>
+
+            <div class="pill-row">
+                <span class="pill">Scans</span>
+                <span class="pill">OCR</span>
+                <span class="pill">Exporter</span>
+                <span class="pill">LLM (optional)</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-soft mt-3">
+        <div class="card-soft-title">Ordnerstruktur (MVP-Hinweis)</div>
+        <div class="card-soft-body">
+            <p class="mb-0 muted">
+                Pro Kunde wird ein Ordner unter <code>App_Data/Clients</code> angelegt.
+                Über Rechtsklick → <b>Create Folder</b>/<b>Create Notes</b> kannst du bereits testweise Unterordner/Notizen erzeugen.
+                Später landen Scans pro Tag im gleichen Timestamp-Ordner.
+            </p>
+        </div>
+    </div>
+</div>

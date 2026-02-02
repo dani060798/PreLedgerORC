@@ -1,0 +1,51 @@
+﻿@model List<PreLedgerORC.ViewComponents.CustomersSidebarViewComponent.CustomerTreeVm>
+
+    <div class="customers-sidebar">
+        @if (Model.Count == 0)
+    {
+        <div class="empty-state">
+            <div class="muted">Noch keine Kunden</div>
+            <div class="muted">Klicke auf <strong>+ Kunde</strong>, um zu starten.</div>
+        </div>
+    }
+    else
+    {
+        foreach (var c in Model)
+        {
+            var customerKey = $"cust:{c.Id}";
+
+        <details class="tree-customer" data-node-key="@customerKey">
+            <summary class="customer-row"
+                     data-node-type="customer"
+                     data-customer-id="@c.Id"
+                     data-customer-name="@c.Name"
+                     data-relpath="">
+                <span class="caret" aria-hidden="true">▸</span>
+                <a class="customer-link" href="/Customers/@c.Id" title="Kundenübersicht">@c.Name</a>
+            </summary>
+
+            <div class="tree-root">
+                @if (c.Nodes.Count == 0)
+                    {
+                <div class="tree-empty muted">Keine Ordner / Notes</div>
+                    }
+                    else
+                    {
+                        foreach (var node in c.Nodes)
+                        {
+                @await Html.PartialAsync(
+                                "/Views/Shared/Components/CustomersSidebar/_SidebarTreeNode.cshtml",
+                                new PreLedgerORC.Views.Shared.Components.CustomersSidebar.SidebarTreeNodeVm
+                                {
+                                    CustomerId = c.Id,
+                                    CustomerName = c.Name,
+                                    Node = node
+                                }
+                            )
+                        }
+                    }
+            </div>
+        </details>
+        }
+    }
+    </div>
