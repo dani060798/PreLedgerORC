@@ -11,21 +11,86 @@
         </div>
 
         <div class="d-flex gap-2">
-            <button class="theme-toggle" type="button" title="Scan (kommt später)">
+            <button class="theme-toggle" type="button" title="Scan (kommt später)" disabled>
                 <span class="theme-icon" aria-hidden="true">📷</span>
                 <span class="theme-label">Scan</span>
             </button>
 
-            <button class="theme-toggle" type="button" title="Upload (kommt später)">
-                <span class="theme-icon" aria-hidden="true">⬆️</span>
-                <span class="theme-label">Upload</span>
-            </button>
+            <!-- Upload: funktioniert jetzt -->
+            <form method="post" enctype="multipart/form-data" asp-page-handler="Upload" class="m-0 p-0">
+                @Html.AntiForgeryToken()
 
-            <button class="theme-toggle" type="button" title="Export (kommt später)">
+                <input id="uploadInput"
+                       class="d-none"
+                       type="file"
+                       name="files"
+                       accept=".jpg,.jpeg,.png,.pdf"
+                       multiple
+                       onchange="this.form.submit();" />
+
+                <button class="theme-toggle" type="button" title="Upload (JPG/PNG/PDF)"
+                        onclick="document.getElementById('uploadInput').click();">
+                    <span class="theme-icon" aria-hidden="true">⬆️</span>
+                    <span class="theme-label">Upload</span>
+                </button>
+            </form>
+
+            <button class="theme-toggle" type="button" title="Export (kommt später)" disabled>
                 <span class="theme-icon" aria-hidden="true">📤</span>
                 <span class="theme-label">Export</span>
             </button>
         </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Flash))
+    {
+    <div class="alert alert-warning mt-3" role="alert">@Model.Flash</div>
+    }
+
+    <!-- Documents / Uploads -->
+    <div class="card-soft mt-3">
+        <div class="card-soft-title mb-2">Documents / Uploads</div>
+
+        @if (Model.Documents.Count == 0)
+        {
+        <div class="muted small">
+            Noch keine Uploads. Nutze oben <b>Upload</b> (JPG/PNG/PDF · max 30MB).
+        </div>
+        }
+        else
+        {
+        <div class="list-group list-group-flush">
+            @foreach (var d in Model.Documents)
+                {
+            <div class="list-group-item d-flex justify-content-between align-items-center gap-3">
+                <div style="min-width:0;">
+                    <div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                        @d.OriginalFileName
+                    </div>
+                    <div class="small muted">
+                        @d.CreatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                        <span class="muted">·</span>
+                        <span class="muted">Status:</span>
+                        <span class="@Model.StatusCss(d.Status)">@Model.StatusLabel(d.Status)</span>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2 flex-wrap" style="flex-shrink:0;">
+                    <a class="btn btn-outline-secondary btn-sm" target="_blank" href="/Documents/Open?id=@d.Id">Open</a>
+
+                    <form method="post" asp-page-handler="DeleteDocument" class="m-0 p-0">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="documentId" value="@d.Id" />
+                        <button type="submit" class="btn btn-outline-danger btn-sm"
+                                onclick="return confirm('Dokument wirklich löschen?');">
+                            Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+                }
+        </div>
+        }
     </div>
 
     <!-- Mitte: Notes-Liste -->

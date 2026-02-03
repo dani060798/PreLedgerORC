@@ -1,24 +1,42 @@
-using System.IO;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace PreLedgerORC.Services;
 
 public class AppPaths
 {
-    public string ProjectRoot { get; }
-    public string AppDataDirectory { get; }
-    public string ClientsRootDirectory { get; }
+    private readonly IWebHostEnvironment _env;
+    private readonly ILogger<AppPaths> _logger;
 
     public AppPaths(IWebHostEnvironment env, ILogger<AppPaths> logger)
     {
-        // ContentRootPath == Projektroot beim Start aus VS
-        ProjectRoot = env.ContentRootPath;
+        _env = env;
+        _logger = logger;
 
-        AppDataDirectory = Path.Combine(ProjectRoot, "App_Data");
-        ClientsRootDirectory = Path.Combine(AppDataDirectory, "Clients");
+        ProjectRoot = _env.ContentRootPath;
 
-        logger.LogInformation("ProjectRoot: {ProjectRoot}", ProjectRoot);
-        logger.LogInformation("ContentRootPath: {ContentRootPath}", env.ContentRootPath);
-        logger.LogInformation("WebRootPath: {WebRootPath}", env.WebRootPath);
-        logger.LogInformation("SQLite DB: {DbPath}", Path.Combine(AppDataDirectory, "prehledgerorc.db"));
+        // Central data root in project folder
+        DataRootDirectory = Path.Combine(ProjectRoot, "Data");
+        Directory.CreateDirectory(DataRootDirectory);
+
+        // Existing customers root (keep compatibility)
+        ClientsRootDirectory = Path.Combine(DataRootDirectory, "Clients");
+        Directory.CreateDirectory(ClientsRootDirectory);
+
+        _logger.LogInformation("ProjectRoot: {root}", ProjectRoot);
+        _logger.LogInformation("DataRootDirectory: {dir}", DataRootDirectory);
+        _logger.LogInformation("ClientsRootDirectory: {dir}", ClientsRootDirectory);
     }
+
+    public string ProjectRoot { get; }
+
+    /// <summary>
+    /// ProjectRoot/Data
+    /// </summary>
+    public string DataRootDirectory { get; }
+
+    /// <summary>
+    /// ProjectRoot/Data/Clients (existing notes/folders)
+    /// </summary>
+    public string ClientsRootDirectory { get; }
 }

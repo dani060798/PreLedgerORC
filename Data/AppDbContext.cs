@@ -8,16 +8,22 @@ public class AppDbContext : DbContext
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<DocumentItem> DocumentItems => Set<DocumentItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Customer>(e =>
-        {
-            e.HasKey(x => x.Id);
-            e.Property(x => x.Name).IsRequired().HasMaxLength(200);
-            e.Property(x => x.CreatedUtc).IsRequired();
+        base.OnModelCreating(modelBuilder);
 
-            e.HasIndex(x => x.Name);
+        modelBuilder.Entity<Customer>(b =>
+        {
+            b.HasIndex(x => x.Name);
+        });
+
+        modelBuilder.Entity<DocumentItem>(b =>
+        {
+            b.HasIndex(x => x.CustomerId);
+            b.HasIndex(x => x.CreatedAtUtc);
+            b.Property(x => x.Status).HasConversion<int>();
         });
     }
 }

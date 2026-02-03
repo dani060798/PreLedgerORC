@@ -1,4 +1,3 @@
-using System.IO;
 using Microsoft.EntityFrameworkCore;
 using PreLedgerORC.Data;
 using PreLedgerORC.Services;
@@ -17,7 +16,6 @@ static string FindProjectRoot(string startDir)
 
 var projectRoot = FindProjectRoot(Directory.GetCurrentDirectory());
 
-// IMPORTANT: set roots via WebApplicationOptions (required by minimal hosting)
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
     Args = args,
@@ -25,17 +23,19 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
     WebRootPath = Path.Combine(projectRoot, "wwwroot")
 });
 
-// Logging
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
-// Razor Pages
 builder.Services.AddRazorPages();
 
 // App services
-builder.Services.AddSingleton<AppPaths>();              // uses IWebHostEnvironment + ILogger<AppPaths>
+builder.Services.AddSingleton<AppPaths>();
 builder.Services.AddScoped<CustomerFilesService>();
-builder.Services.AddSingleton<HtmlSanitizerService>();
+
+builder.Services.AddSingleton<DocumentStorageService>();
+
+builder.Services.AddSingleton<IDocumentPipelineQueue, DocumentPipelineQueue>();
+builder.Services.AddHostedService<DocumentPipelineHostedService>();
 
 // SQLite
 var dbDir = Path.Combine(projectRoot, "App_Data");
@@ -49,24 +49,22 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 var app = builder.Build();
 
-// Log effective paths (good sanity check)
 app.Logger.LogInformation("ProjectRoot: {root}", projectRoot);
 app.Logger.LogInformation("ContentRootPath: {root}", app.Environment.ContentRootPath);
 app.Logger.LogInformation("WebRootPath: {root}", app.Environment.WebRootPath);
 app.Logger.LogInformation("SQLite DB: {db}", dbPath);
 
-// Ensure DB exists
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    // IMPORTANT: EnsureCreated won't add new tables into an existing DB schema.
+    // If you already had a DB file, delete it once or switch to migrations.
     db.Database.EnsureCreated();
 }
 
 app.UseExceptionHandler("/Error");
-
-// Static files MUST be enabled (now it will use correct wwwroot)
 app.UseStaticFiles();
-
 app.UseRouting();
 app.MapRazorPages();
 

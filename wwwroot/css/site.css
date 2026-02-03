@@ -45,7 +45,6 @@ body {
     line-height: 1.45;
 }
 
-/* Utility */
 .muted {
     color: var(--muted);
 }
@@ -168,10 +167,9 @@ body {
 }
 
 /* ==========================================================
-   Sidebar Tree (Marker fix + “first good” typography)
+   Sidebar Tree (marker fix + calm typography)
    ========================================================== */
 
-/* Remove default <summary> marker (prevents double triangles) */
 details > summary {
     list-style: none;
 }
@@ -184,7 +182,6 @@ details > summary {
         content: "";
     }
 
-/* Customer blocks */
 .tree-customer {
     border-radius: var(--radius2);
     margin-bottom: 8px;
@@ -200,11 +197,14 @@ details > summary {
     user-select: none;
 }
 
+    .customer-row:hover {
+        background: rgba(15, 23, 42, 0.04);
+    }
+
 html[data-theme="dark"] .customer-row:hover {
     background: rgba(255, 255, 255, 0.08);
 }
 
-/* “First version” feel: not bold, a bit larger, clean */
 .customer-link {
     color: var(--text);
     text-decoration: none;
@@ -223,7 +223,6 @@ html[data-theme="dark"] .customer-row:hover {
     border-left: 1px solid var(--border);
 }
 
-/* Caret (our own) */
 .caret {
     width: 14px;
     display: inline-flex;
@@ -239,7 +238,6 @@ details[open] > summary .caret {
     transform: rotate(90deg);
 }
 
-/* Tree items */
 .tree-item {
     display: flex;
     align-items: center;
@@ -251,7 +249,6 @@ details[open] > summary .caret {
     user-select: none;
 }
 
-/* folders clickable, notes contextmenu */
 .tree-folder > summary.tree-item {
     cursor: pointer;
 }
@@ -268,10 +265,9 @@ html[data-theme="dark"] .tree-item:hover {
     background: rgba(231, 237, 247, 0.06);
 }
 
-/* Folder/Note typography: normal, readable */
 .tree-name {
-    font-size: 13.8px; /* not tiny */
-    font-weight: 450; /* calm */
+    font-size: 13.8px;
+    font-weight: 450;
     letter-spacing: -0.005em;
 }
 
@@ -285,7 +281,6 @@ html[data-theme="dark"] .tree-item:hover {
     color: var(--muted);
 }
 
-/* Drag feedback */
 .dragging {
     opacity: 0.6;
 }
@@ -340,6 +335,96 @@ html[data-theme="dark"] .context-item:hover {
 }
 
 /* ==========================================================
+   Documents list + status badges
+   ========================================================== */
+
+.docs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.doc-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: rgba(0,0,0,0.01);
+}
+
+html[data-theme="dark"] .doc-row {
+    background: rgba(255,255,255,0.03);
+}
+
+.doc-main {
+    min-width: 0;
+}
+
+.doc-name {
+    font-weight: 560;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 520px;
+}
+
+.doc-meta {
+    font-size: 12.5px;
+    margin-top: 3px;
+}
+
+.doc-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.badge-soft {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    background: rgba(0,0,0,0.02);
+}
+
+html[data-theme="dark"] .badge-soft {
+    background: rgba(255,255,255,0.04);
+}
+
+.badge-pending {
+    color: #a16207;
+}
+
+.badge-stored {
+    color: #1d4ed8;
+}
+
+.badge-queued {
+    color: #6d28d9;
+}
+
+.badge-done {
+    color: #047857;
+}
+
+.badge-ready {
+    color: #0f766e;
+}
+
+.badge-failed {
+    color: #b91c1c;
+}
+
+/* ==========================================================
    Notes editor wrapper
    ========================================================== */
 
@@ -385,7 +470,6 @@ html[data-theme="dark"] .context-item:hover {
     margin-top: 12px;
 }
 
-/* Quill fit */
 .ql-toolbar.ql-snow,
 .ql-container.ql-snow {
     border: none !important;
@@ -413,10 +497,10 @@ html[data-theme="dark"] .context-item:hover {
     box-shadow: var(--shadow);
 }
 
-    .home-action:hover {
-        transform: translateY(-2px);
-        border-color: var(--accent);
-    }
+.home-action:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+}
 
 .action-icon {
     font-size: 28px;
