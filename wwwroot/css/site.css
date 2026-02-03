@@ -394,3 +394,36 @@ html[data-theme="dark"] .context-item:hover {
 .ql-toolbar {
     background: transparent;
 }
+
+.home-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+    margin: 28px 0 36px;
+}
+
+.home-action {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 26px 22px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s;
+    box-shadow: var(--shadow);
+}
+
+    .home-action:hover {
+        transform: translateY(-2px);
+        border-color: var(--accent);
+    }
+
+.action-icon {
+    font-size: 28px;
+    margin-bottom: 10px;
+}
+
+.action-text {
+    font-weight: 600;
+    font-size: 15px;
+}

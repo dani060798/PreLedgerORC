@@ -2,35 +2,85 @@
 @model PreLedgerORC.Pages.Customers.DetailsModel
 
 <div class="page">
-    <div class="page-header">
-        <h2 class="page-title">@Model.CustomerName</h2>
-        <div class="page-sub">Home · History kommt später</div>
+
+    <!-- Header: Kundenname + Actions -->
+    <div class="page-header d-flex align-items-start justify-content-between gap-3">
+        <div>
+            <h2 class="page-title">@Model.CustomerName</h2>
+            <div class="page-sub muted">Actions: Scan · Upload · Export</div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button class="theme-toggle" type="button" title="Scan (kommt später)">
+                <span class="theme-icon" aria-hidden="true">📷</span>
+                <span class="theme-label">Scan</span>
+            </button>
+
+            <button class="theme-toggle" type="button" title="Upload (kommt später)">
+                <span class="theme-icon" aria-hidden="true">⬆️</span>
+                <span class="theme-label">Upload</span>
+            </button>
+
+            <button class="theme-toggle" type="button" title="Export (kommt später)">
+                <span class="theme-icon" aria-hidden="true">📤</span>
+                <span class="theme-label">Export</span>
+            </button>
+        </div>
     </div>
 
-    <div class="card-soft">
-        <div class="card-soft-title">History (Placeholder)</div>
+    <!-- Mitte: Notes-Liste -->
+    <div class="card-soft mt-3">
+        <div class="card-soft-title mb-2">Notes</div>
+
+        @if (Model.Notes.Count == 0)
+        {
+        <div class="muted small">
+            Noch keine Notes. Rechtsklick in der Sidebar → <b>Create Notes</b>.
+        </div>
+        }
+        else
+        {
+        <div class="list-group list-group-flush">
+            @foreach (var note in Model.Notes)
+                {
+                    var href = "/Customers/Note?customerId=" + Model.CustomerId + "&relPath=" + System.Net.WebUtility.UrlEncode(note.RelPath);
+
+            <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+               href="@href">
+                <div>
+                    <div style="font-weight:600">@note.Title</div>
+                    <div class="small muted">
+                        @note.UpdatedUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                        <span class="muted">·</span>
+                        <span class="muted">@note.RelPath</span>
+                    </div>
+                </div>
+                <span class="small muted">›</span>
+            </a>
+                }
+        </div>
+        }
+    </div>
+
+    <!-- Unten: Zusammenfassung / Chat / Status -->
+    <div class="card-soft mt-3">
+        <div class="d-flex gap-4 mb-2">
+            <strong>Zusammenfassung</strong>
+            <strong class="muted">Chat</strong>
+            <strong class="muted">Status</strong>
+        </div>
+
         <div class="card-soft-body">
-            <p class="mb-2 muted">
-                Hier erscheinen später Scans, extrahierte Felder, Exporte und Zusammenfassungen.
+            <p class="muted mb-2">
+                Hier kommt später: Zusammenfassung, Chat pro Kunde und Status (z.B. Export-Queue).
             </p>
 
             <div class="pill-row">
-                <span class="pill">Scans</span>
-                <span class="pill">OCR</span>
-                <span class="pill">Exporter</span>
-                <span class="pill">LLM (optional)</span>
+                <span class="pill">Summary (später)</span>
+                <span class="pill">Chat (später)</span>
+                <span class="pill">Status (später)</span>
             </div>
         </div>
     </div>
 
-    <div class="card-soft mt-3">
-        <div class="card-soft-title">Ordnerstruktur (MVP-Hinweis)</div>
-        <div class="card-soft-body">
-            <p class="mb-0 muted">
-                Pro Kunde wird ein Ordner unter <code>App_Data/Clients</code> angelegt.
-                Über Rechtsklick → <b>Create Folder</b>/<b>Create Notes</b> kannst du bereits testweise Unterordner/Notizen erzeugen.
-                Später landen Scans pro Tag im gleichen Timestamp-Ordner.
-            </p>
-        </div>
-    </div>
 </div>
