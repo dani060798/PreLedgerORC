@@ -20,6 +20,8 @@
             <form method="post" enctype="multipart/form-data" asp-page-handler="Upload" class="m-0 p-0">
                 @Html.AntiForgeryToken()
 
+                <input type="hidden" name="FolderId" id="uploadFolderId" value="@Model.SelectedFolderId" />
+
                 <input id="uploadInput"
                        class="d-none"
                        type="file"
@@ -49,12 +51,31 @@
 
     <!-- Documents / Uploads -->
     <div class="card-soft mt-3">
-        <div class="card-soft-title mb-2">Documents / Uploads</div>
+        <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+            <div class="card-soft-title">Documents / Uploads</div>
+
+            <!-- Folder selector for upload target -->
+            <div class="d-flex align-items-center gap-2">
+                <span class="muted small">Upload-Ziel:</span>
+                <select class="form-select form-select-sm" style="max-width:260px;" id="uploadFolderSelect">
+                    @foreach (var f in Model.UploadTargets)
+                    {
+                    <option value="@f.FolderId" selected="@(f.FolderId == Model.SelectedFolderId)">
+                        @f.DisplayName
+                    </option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        <div class="muted small mb-2">
+            JPG/PNG/PDF · max 30MB · Dateien erscheinen links im Tree unter dem gewählten Ordner.
+        </div>
 
         @if (Model.Documents.Count == 0)
         {
         <div class="muted small">
-            Noch keine Uploads. Nutze oben <b>Upload</b> (JPG/PNG/PDF · max 30MB).
+            Noch keine Uploads. Nutze oben <b>Upload</b>.
         </div>
         }
         else
@@ -69,6 +90,9 @@
                     </div>
                     <div class="small muted">
                         @d.CreatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                        <span class="muted">·</span>
+                        <span class="muted">Folder:</span>
+                        <span class="muted">@((d.FolderId ?? "root"))</span>
                         <span class="muted">·</span>
                         <span class="muted">Status:</span>
                         <span class="@Model.StatusCss(d.Status)">@Model.StatusLabel(d.Status)</span>
@@ -149,3 +173,27 @@
     </div>
 
 </div>
+
+@section Scripts {
+    <script>
+(function(){
+    const sel = document.getElementById('uploadFolderSelect');
+    const hid = document.getElementById('uploadFolderId');
+
+    if(!sel || !hid) return;
+
+    // load last selection per customer
+    const key = 'preh_upload_folder_' + '@Model.CustomerId';
+    const saved = localStorage.getItem(key);
+    if(saved && [...sel.options].some(o => o.value === saved)){
+        sel.value = saved;
+        hid.value = saved;
+    }
+
+    sel.addEventListener('change', () => {
+        hid.value = sel.value;
+        localStorage.setItem(key, sel.value);
+    });
+})();
+    </script>
+}

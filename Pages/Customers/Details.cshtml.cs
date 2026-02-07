@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using PreLedgerORC.Data;
 using PreLedgerORC.Models;
 using PreLedgerORC.Services;
+using System.IO;
 
 namespace PreLedgerORC.Pages.Customers;
 
@@ -36,9 +37,17 @@ public class DetailsModel : PageModel
         public DateTime UpdatedUtc { get; set; }
     }
 
-    public List<NoteVm> Notes { get; set; } = new();
+    public sealed class UploadTargetVm
+    {
+        public string FolderId { get; set; } = "Dokumente";   // default is "Dokumente"
+        public string DisplayName { get; set; } = "Dokumente";
+    }
 
+    public List<NoteVm> Notes { get; set; } = new();
     public List<DocumentItem> Documents { get; set; } = new();
+
+    public List<UploadTargetVm> UploadTargets { get; set; } = new();
+    public string SelectedFolderId { get; set; } = "Dokumente";
 
     [TempData]
     public string? Flash { get; set; }
@@ -53,6 +62,14 @@ public class DetailsModel : PageModel
 
         CustomerName = customer.Name;
 
+        // Ensure default docs folder exists physically
+        try
+        {
+            var rootDir = _files.ResolveCustomerDirectoryById(id);
+            Directory.CreateDirectory(Path.Combine(rootDir, "Dokumente"));
+        }
+        catch { }
+
         Documents = await _db.DocumentItems.AsNoTracking()
             .Where(x => x.CustomerId == id)
             .OrderByDescending(x => x.CreatedAtUtc)
@@ -60,10 +77,13 @@ public class DetailsModel : PageModel
 
         Notes = LoadNotesFromFilesystem(id);
 
+        UploadTargets = BuildUploadTargets(id);
+        SelectedFolderId = "Dokumente";
+
         return Page();
     }
 
-    public async Task<IActionResult> OnPostUploadAsync(int id, List<IFormFile> files, CancellationToken ct)
+    public async Task<IActionResult> OnPostUploadAsync(int id, List<IFormFile> files, [FromForm] string? FolderId, CancellationToken ct)
     {
         var customer = await _db.Customers.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
         if (customer == null)
@@ -75,8 +95,19 @@ public class DetailsModel : PageModel
             return Redirect($"/Customers/{id}");
         }
 
-        // MVP: Upload in root. Später: selected folder from UI/Sidebar.
-        var folderId = "root";
+        // Default is "Dokumente" (never "root")
+        var folderId = string.IsNullOrWhiteSpace(FolderId) ? "Dokumente" : FolderId.Trim();
+
+        // safety: only allow an existing folder under customer directory
+        folderId = ValidateFolderIdForCustomer(id, folderId);
+
+        // Ensure docs folder exists
+        try
+        {
+            var rootDir = _files.ResolveCustomerDirectoryById(id);
+            Directory.CreateDirectory(Path.Combine(rootDir, "Dokumente"));
+        }
+        catch { }
 
         foreach (var file in files)
         {
@@ -88,17 +119,37 @@ public class DetailsModel : PageModel
                 {
                     Id = Guid.NewGuid(),
                     CustomerId = id,
-                    FolderId = folderId,
+                    FolderId = folderId, // always a real folder, never "root"
                     OriginalFileName = Path.GetFileName(file.FileName ?? "upload"),
                     CreatedAtUtc = DateTime.UtcNow,
                     Status = DocumentStatus.Pending
                 };
 
-                var ext = Path.GetExtension(doc.OriginalFileName);
-                if (string.IsNullOrWhiteSpace(ext))
-                    ext = ".bin";
+                var originalName = Path.GetFileName(doc.OriginalFileName);
+                if (string.IsNullOrWhiteSpace(originalName))
+                    originalName = "upload.pdf";
 
-                doc.StoredPath = _storage.BuildStoredRelativePath(id, folderId, doc.CreatedAtUtc, doc.Id, ext);
+                // collision handling: Scan.pdf -> Scan_2.pdf ...
+                string candidate = originalName;
+                string baseName = Path.GetFileNameWithoutExtension(originalName);
+                string ext = Path.GetExtension(originalName);
+                if (string.IsNullOrWhiteSpace(ext)) ext = ".bin";
+
+                int i = 2;
+                while (true)
+                {
+                    var relCandidate = _storage.BuildStoredRelativePathForFilename(id, folderId, candidate);
+                    var absCandidate = _storage.GetAbsolutePathFromRelative(relCandidate);
+
+                    if (!System.IO.File.Exists(absCandidate))
+                    {
+                        doc.StoredPath = relCandidate;
+                        break;
+                    }
+
+                    candidate = $"{baseName}_{i}{ext}";
+                    i++;
+                }
 
                 _db.DocumentItems.Add(doc);
                 await _db.SaveChangesAsync(ct);
@@ -124,9 +175,10 @@ public class DetailsModel : PageModel
 
         try
         {
-            var dir = _storage.GetDocumentDirectoryFromStoredPath(item.StoredPath);
-            if (Directory.Exists(dir))
-                Directory.Delete(dir, recursive: true);
+            // IMPORTANT: delete only the file (not directories like "Dokumente")
+            var abs = _storage.GetAbsolutePathFromRelative(item.StoredPath);
+            if (System.IO.File.Exists(abs))
+                System.IO.File.Delete(abs);
 
             _db.DocumentItems.Remove(item);
             await _db.SaveChangesAsync(ct);
@@ -161,6 +213,78 @@ public class DetailsModel : PageModel
         _ => "badge-soft"
     };
 
+    private string ValidateFolderIdForCustomer(int customerId, string folderId)
+    {
+        folderId = (folderId ?? "").Trim();
+        if (folderId.Length == 0) return "Dokumente";
+        if (folderId.Equals("root", StringComparison.OrdinalIgnoreCase)) return "Dokumente";
+
+        // ensure folder exists under customer directory
+        try
+        {
+            var abs = _files.GetAbsolutePathForCustomer(customerId, folderId);
+            if (Directory.Exists(abs))
+                return folderId.Replace('\\', '/').Trim('/');
+        }
+        catch
+        {
+            // ignore
+        }
+
+        return "Dokumente";
+    }
+
+    private List<UploadTargetVm> BuildUploadTargets(int customerId)
+    {
+        var list = new List<UploadTargetVm>
+        {
+            new UploadTargetVm { FolderId = "Dokumente", DisplayName = "Dokumente" }
+        };
+
+        string baseDir;
+        try
+        {
+            baseDir = _files.ResolveCustomerDirectoryById(customerId);
+        }
+        catch
+        {
+            return list;
+        }
+
+        // all folders under customer dir (excluding hidden/system)
+        foreach (var dir in Directory.EnumerateDirectories(baseDir, "*", SearchOption.AllDirectories))
+        {
+            var name = Path.GetFileName(dir);
+            if (name.StartsWith(".", StringComparison.OrdinalIgnoreCase)) continue;
+
+            string rel;
+            try
+            {
+                rel = _files.GetRelPathFromAbsolute(customerId, dir);
+            }
+            catch
+            {
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(rel)) continue;
+
+            if (rel.Equals("Dokumente", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            list.Add(new UploadTargetVm
+            {
+                FolderId = rel,
+                DisplayName = rel
+            });
+
+        }
+
+        return list
+            .OrderBy(x => x.FolderId, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
     private List<NoteVm> LoadNotesFromFilesystem(int customerId)
     {
         var list = new List<NoteVm>();
@@ -175,7 +299,6 @@ public class DetailsModel : PageModel
             return list;
         }
 
-        // scan for both delta notes and markdown notes
         var files = Directory.EnumerateFiles(baseDir, "*.*", SearchOption.AllDirectories)
             .Where(f =>
                 f.EndsWith(".note.json", StringComparison.OrdinalIgnoreCase) ||
@@ -184,24 +307,12 @@ public class DetailsModel : PageModel
         foreach (var abs in files)
         {
             DateTime updatedUtc;
-            try
-            {
-                updatedUtc = System.IO.File.GetLastWriteTimeUtc(abs);
-            }
-            catch
-            {
-                updatedUtc = DateTime.UtcNow;
-            }
+            try { updatedUtc = System.IO.File.GetLastWriteTimeUtc(abs); }
+            catch { updatedUtc = DateTime.UtcNow; }
 
             string rel;
-            try
-            {
-                rel = _files.GetRelPathFromAbsolute(customerId, abs);
-            }
-            catch
-            {
-                continue;
-            }
+            try { rel = _files.GetRelPathFromAbsolute(customerId, abs); }
+            catch { continue; }
 
             var title = FriendlyTitleFromFileName(Path.GetFileName(abs));
 
@@ -218,14 +329,10 @@ public class DetailsModel : PageModel
 
     private static string FriendlyTitleFromFileName(string fileName)
     {
-        // For "yyyy-MM-dd_HH-mm-ss_title.note.json" → show "title"
-        // For ".md" → filename without extension
         if (fileName.EndsWith(".note.json", StringComparison.OrdinalIgnoreCase))
         {
             var stem = fileName[..^(".note.json".Length)];
 
-            // remove leading timestamp if present
-            // pattern: 2026-02-03_12-30-10_
             if (stem.Length > 20 && stem[4] == '-' && stem[7] == '-' && stem[10] == '_' && stem[13] == '-' && stem[16] == '-')
             {
                 var idx = stem.IndexOf('_', 19);

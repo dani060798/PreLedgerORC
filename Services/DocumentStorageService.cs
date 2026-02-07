@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.StaticFiles;
+﻿using Microsoft.AspNetCore.StaticFiles;
 using PreLedgerORC.Models;
 using System.Collections.Generic;
 using System.IO;
@@ -6,12 +6,14 @@ using System;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Linq;
 
 namespace PreLedgerORC.Services;
 
 public class DocumentStorageService
 {
     private readonly AppPaths _paths;
+    private readonly CustomerFilesService _files;
     private readonly FileExtensionContentTypeProvider _contentTypes = new();
 
     // 30 MB default
@@ -29,9 +31,10 @@ public class DocumentStorageService
         "application/pdf"
     };
 
-    public DocumentStorageService(AppPaths paths)
+    public DocumentStorageService(AppPaths paths, CustomerFilesService files)
     {
         _paths = paths;
+        _files = files;
     }
 
     public bool TryGetContentType(string fileName, out string contentType)
@@ -64,13 +67,42 @@ public class DocumentStorageService
 
     /// <summary>
     /// Returns a project-root-relative path (slash-separated).
+    /// (Legacy path builder – kept for compatibility.)
     /// </summary>
     public string BuildStoredRelativePath(int customerId, string folderIdOrRoot, DateTime createdAtUtc, Guid documentId, string originalExt)
     {
+        // IMPORTANT: never use "root" as a physical folder
+        folderIdOrRoot = (folderIdOrRoot ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(folderIdOrRoot) || folderIdOrRoot.Equals("root", StringComparison.OrdinalIgnoreCase))
+            folderIdOrRoot = "Dokumente";
+
         var day = createdAtUtc.ToString("yyyy-MM-dd");
         folderIdOrRoot = NormalizeFolderId(folderIdOrRoot);
 
-        var rel = Path.Combine("Data", customerId.ToString(), folderIdOrRoot, "Documents", day, documentId.ToString("D"), "original" + originalExt);
+        // Kundenordner (Data/Clients/<id_name>) ermitteln und relativ zum ProjectRoot machen
+        var customerAbs = _files.ResolveCustomerDirectoryById(customerId);
+        var customerRel = Path.GetRelativePath(_paths.ProjectRoot, customerAbs);
+
+        var rel = Path.Combine(customerRel, folderIdOrRoot, "Documents", day, documentId.ToString("D"), "original" + originalExt);
+        return rel.Replace('\\', '/');
+    }
+
+    /// <summary>
+    /// Stores directly inside the folder with the given filename.
+    /// Returns a project-root-relative path (slash-separated).
+    /// </summary>
+    public string BuildStoredRelativePathForFilename(int customerId, string folderId, string fileName)
+    {
+        folderId = (folderId ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(folderId) || folderId.Equals("root", StringComparison.OrdinalIgnoreCase))
+            folderId = "Dokumente";
+
+        folderId = NormalizeFolderId(folderId);
+
+        var customerAbs = _files.ResolveCustomerDirectoryById(customerId);
+        var customerRel = Path.GetRelativePath(_paths.ProjectRoot, customerAbs);
+
+        var rel = Path.Combine(customerRel, folderId, fileName);
         return rel.Replace('\\', '/');
     }
 
@@ -109,21 +141,23 @@ public class DocumentStorageService
         folderIdOrRoot = (folderIdOrRoot ?? "").Trim();
 
         if (string.IsNullOrWhiteSpace(folderIdOrRoot))
-            return "root";
+            return "Dokumente";
 
-        // keep it simple for MVP: allow only safe path segments
         folderIdOrRoot = folderIdOrRoot.Replace('\\', '/').Trim('/');
-        if (folderIdOrRoot.Length == 0) return "root";
+        if (folderIdOrRoot.Length == 0) return "Dokumente";
 
-        // collapse dangerous chars
+        // collapse dangerous dots
         folderIdOrRoot = Regex.Replace(folderIdOrRoot, @"\.\.+", ".");
-        folderIdOrRoot = Regex.Replace(folderIdOrRoot, @"[^a-zA-Z0-9_\-\/]", "_");
+
+        // ✅ FIX: allow unicode letters/numbers (umlaute etc.)
+        // allow: letters, numbers, underscore, dash, slash
+        folderIdOrRoot = Regex.Replace(folderIdOrRoot, @"[^\p{L}\p{N}_\-\/]", "_");
 
         // prevent traversal segments
         var parts = folderIdOrRoot.Split('/', StringSplitOptions.RemoveEmptyEntries)
             .Where(p => p != "." && p != "..")
             .ToArray();
 
-        return parts.Length == 0 ? "root" : string.Join('/', parts);
+        return parts.Length == 0 ? "Dokumente" : string.Join('/', parts);
     }
 }

@@ -77,12 +77,23 @@
         </div>
     </div>
 
-    <!-- Context Menu -->
-    <div id="contextMenu" class="context-menu" hidden>
+    <!-- Context Menus (separate per type) -->
+    <div id="ctxMenuFolder" class="context-menu" hidden>
         <button class="context-item" type="button" data-action="create-folder">Create Folder</button>
         <button class="context-item" type="button" data-action="create-notes">Create Notes</button>
         <div class="context-sep"></div>
+        <button class="context-item" type="button" data-action="rename-folder">Rename Folder</button>
+        <button class="context-item danger" type="button" data-action="delete-folder">Delete Folder</button>
+    </div>
+
+    <div id="ctxMenuNote" class="context-menu" hidden>
+        <button class="context-item" type="button" data-action="rename-note">Rename Note</button>
         <button class="context-item danger" type="button" data-action="delete-note">Delete Note</button>
+    </div>
+
+    <div id="ctxMenuDoc" class="context-menu" hidden>
+        <button class="context-item" type="button" data-action="rename-document">Rename Document</button>
+        <button class="context-item danger" type="button" data-action="delete-document">Delete Document</button>
     </div>
 
     <!-- Hidden forms for context actions -->
@@ -106,11 +117,60 @@
         <input type="hidden" name="RelPath" id="ctxRelPath_DeleteNote" />
     </form>
 
+    <form id="ctxRenameNoteForm" method="post" action="/Customers/Actions?handler=RenameNote" class="d-none">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="CustomerId" id="ctxCustomerId_RenameNote" />
+        <input type="hidden" name="RelPath" id="ctxRelPath_RenameNote" />
+        <input type="hidden" name="NewName" id="ctxNewName_RenameNote" />
+    </form>
+
+    <form id="ctxRenameFolderForm" method="post" action="/Customers/Actions?handler=RenameFolder" class="d-none">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="CustomerId" id="ctxCustomerId_RenameFolder" />
+        <input type="hidden" name="RelPath" id="ctxRelPath_RenameFolder" />
+        <input type="hidden" name="NewName" id="ctxNewName_RenameFolder" />
+    </form>
+
+    <form id="ctxDeleteFolderForm" method="post" action="/Customers/Actions?handler=DeleteFolder" class="d-none">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="CustomerId" id="ctxCustomerId_DeleteFolder" />
+        <input type="hidden" name="RelPath" id="ctxRelPath_DeleteFolder" />
+    </form>
+
+    <form id="ctxRenameDocumentForm" method="post" action="/Customers/Actions?handler=RenameDocument" class="d-none">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="DocumentId" id="ctxDocumentId_RenameDocument" />
+        <input type="hidden" name="NewName" id="ctxNewName_RenameDocument" />
+    </form>
+
+    <form id="ctxDeleteDocumentForm" method="post" action="/Customers/Actions?handler=DeleteDocument" class="d-none">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="DocumentId" id="ctxDocumentId_DeleteDocument" />
+    </form>
+
     <form id="ctxMoveNoteForm" method="post" action="/Customers/Actions?handler=MoveNote" class="d-none">
         @Html.AntiForgeryToken()
         <input type="hidden" name="CustomerId" id="ctxCustomerId_MoveNote" />
         <input type="hidden" name="SourceRelPath" id="ctxSourceRelPath_MoveNote" />
         <input type="hidden" name="TargetFolderRelPath" id="ctxTargetFolderRelPath_MoveNote" />
+    </form>
+
+    <form id="ctxMoveDocumentForm" method="post" action="/Customers/Actions?handler=MoveDocument" class="d-none">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="CustomerId" id="ctxCustomerId_MoveDocument" />
+        <input type="hidden" name="DocumentId" id="ctxDocumentId_MoveDocument" />
+        <input type="hidden" name="TargetFolderId" id="ctxTargetFolderId_MoveDocument" />
+    </form>
+
+    <form id="ctxRenameCustomerForm" method="post" action="/Customers/Actions?handler=Rename">
+        @Html.AntiForgeryToken()
+        <input type="hidden" id="ctxCustomerId_RenameCustomer" name="CustomerId" value="" />
+        <input type="hidden" id="ctxNewName_RenameCustomer" name="NewName" value="" />
+    </form>
+
+    <form id="ctxDeleteCustomerForm" method="post" action="/Customers/Actions?handler=Delete">
+        @Html.AntiForgeryToken()
+        <input type="hidden" id="ctxCustomerId_DeleteCustomer" name="CustomerId" value="" />
     </form>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

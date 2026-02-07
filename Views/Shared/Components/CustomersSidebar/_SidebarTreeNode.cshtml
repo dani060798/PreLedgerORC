@@ -1,73 +1,123 @@
-﻿@model PreLedgerORC.Views.Shared.Components.CustomersSidebar.SidebarTreeNodeVm
+﻿@using PreLedgerORC.ViewComponents
+@model CustomersSidebarViewComponent.TreeNodeVm
 
 @{
-    var node = Model.Node;
-    var rel = (node.RelPath ?? "").Replace("\\", "/");
-    var level = string.IsNullOrWhiteSpace(rel)
+    var customerId   = ViewData["CustomerId"] as int? ?? 0;
+    var customerName = ViewData["CustomerName"] as string ?? "";
+    var levelFromVD  = ViewData["Level"] as int?; // für Docs wichtig
+
+    bool isFolder = Model.NodeType == CustomersSidebarViewComponent.TreeNodeType.Folder;
+    bool isNote   = Model.NodeType == CustomersSidebarViewComponent.TreeNodeType.Note;
+    bool isDoc    = Model.NodeType == CustomersSidebarViewComponent.TreeNodeType.Document;
+
+    // RelPath normalize (wie alt)
+    var rel = (Model.RelPath ?? "").Replace("\\", "/").Trim('/');
+    var relSegments = string.IsNullOrWhiteSpace(rel)
         ? 0
         : rel.Split('/', StringSplitOptions.RemoveEmptyEntries).Length;
 
+    // Level:
+    // - wenn ViewData["Level"] gesetzt ist (bei Rekursion), nutze das
+    // - sonst fallback: Level aus RelPath
+    var level = levelFromVD ?? relSegments;
+
     var pad = 10 + (level * 12);
 
-    string NodeKey(string prefix, int customerId, string relPath)
+    string NodeKey(string prefix, int custId, string relPath)
     {
         relPath = (relPath ?? "").Replace("\\", "/");
-        return $"{prefix}:{customerId}:{relPath}";
+        return $"{prefix}:{custId}:{relPath}";
     }
+
+    var folderRel   = rel; // alias
+    var docId       = Model.DocumentId?.ToString() ?? "";
+    var docFolderId = (Model.DocumentFolderId ?? "root");
 }
 
-@if (node.IsFolder)
+@if (isFolder)
 {
-    var folderKey = NodeKey("fold", Model.CustomerId, rel);
+    var folderKey = NodeKey("fold", customerId, folderRel);
 
-<details class="tree-folder" data-node-key="@folderKey">
+<details class="tree-folder"
+         data-node-key="@folderKey"
+         data-node-type="folder"
+         data-customer-id="@customerId"
+         data-customer-name="@customerName"
+         data-relpath="@folderRel"
+         data-folder-rel="@folderRel"
+         data-virtual="@(Model.IsVirtual ? "1" : "0")">
     <summary class="tree-item folder drop-target"
              style="padding-left:@(pad)px"
              data-node-type="folder"
-             data-customer-id="@Model.CustomerId"
-             data-customer-name="@Model.CustomerName"
-             data-relpath="@rel">
+             data-customer-id="@customerId"
+             data-customer-name="@customerName"
+             data-relpath="@folderRel">
         <span class="caret" aria-hidden="true">▸</span>
         <span class="tree-icon" aria-hidden="true">📁</span>
-        <span class="tree-name">@node.Name</span>
+        <span class="tree-name">@Model.Name</span>
     </summary>
 
-    <div class="tree-folder-children">
-        @if (node.Children.Count == 0)
+    <div class="tree-children tree-folder-children">
+        @if (Model.Children == null || Model.Children.Count == 0)
+        {
+        <div class="tree-empty"></div>
+        }
+        else
+        {
+            foreach (var child in Model.Children)
             {
-
-            }
-            else
-            {
-        @foreach (var child in node.Children)
-                {
         @await Html.PartialAsync(
-                        "/Views/Shared/Components/CustomersSidebar/_SidebarTreeNode.cshtml",
-                        new PreLedgerORC.Views.Shared.Components.CustomersSidebar.SidebarTreeNodeVm
-                        {
-                            CustomerId = Model.CustomerId,
-                            CustomerName = Model.CustomerName,
-                            Node = child
-                        }
-                    )
-                }
+                    "~/Views/Shared/Components/CustomersSidebar/_SidebarTreeNode.cshtml",
+                    child,
+                    new ViewDataDictionary(ViewData)
+                    {
+                        ["CustomerId"] = customerId,
+                        ["CustomerName"] = customerName,
+                        ["Level"] = level + 1
+                    }
+                )
             }
+        }
     </div>
 </details>
 }
-else
+else if (isNote)
 {
-    var encodedRel = System.Net.WebUtility.UrlEncode(rel);
+    var encodedRel = System.Net.WebUtility.UrlEncode(Model.RelPath ?? "");
+    var href = "/Customers/Note?customerId=" + customerId + "&relPath=" + encodedRel;
 
-<a class="tree-item note draggable-note"
+<a class="tree-item note draggable-note tree-note"
+   href="@href"
    draggable="true"
    style="padding-left:@(pad + 14)px"
    data-node-type="note"
-   data-customer-id="@Model.CustomerId"
-   data-customer-name="@Model.CustomerName"
-   data-relpath="@rel"
-   href="/Customers/Note?customerId=@Model.CustomerId&relPath=@encodedRel">
+   data-customer-id="@customerId"
+   data-customer-name="@customerName"
+   data-relpath="@(Model.RelPath ?? "")"
+   data-note-rel="@(Model.RelPath ?? "")">
     <span class="tree-icon" aria-hidden="true">📝</span>
-    <span class="tree-name">@node.Name</span>
+    <span class="tree-name">@Model.Name</span>
 </a>
+}
+else if (isDoc)
+{
+    // Doc indentation: nutzt Level aus ViewData, damit es in der Tree-Struktur sitzt
+<div class="tree-item tree-doc"
+     draggable="true"
+     style="padding-left:@(pad + 14)px"
+     data-node-type="doc"
+     data-customer-id="@customerId"
+     data-customer-name="@customerName"
+     data-doc-id="@docId"
+     data-doc-folder-id="@docFolderId">
+    <span class="tree-icon" aria-hidden="true">📄</span>
+    <span class="tree-name">@Model.Name</span>
+
+    <div class="tree-doc-actions">
+        <a class="tree-doc-open"
+           href="/Documents/Open?id=@docId"
+           target="_blank"
+           title="Open">Open</a>
+    </div>
+</div>
 }

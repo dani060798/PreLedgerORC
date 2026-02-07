@@ -27,19 +27,20 @@
             <div class="tree-root">
                 @if (c.Nodes.Count == 0)
                     {
-                <div class="tree-empty muted">Keine Ordner / Notes</div>
+                <div class="tree-empty muted">Keine Ordner / Notes / Documents</div>
                     }
                     else
                     {
                         foreach (var node in c.Nodes)
                         {
                 @await Html.PartialAsync(
-                                "/Views/Shared/Components/CustomersSidebar/_SidebarTreeNode.cshtml",
-                                new PreLedgerORC.Views.Shared.Components.CustomersSidebar.SidebarTreeNodeVm
+                                "~/Views/Shared/Components/CustomersSidebar/_SidebarTreeNode.cshtml",
+                                node,
+                                new ViewDataDictionary(ViewData)
                                 {
-                                    CustomerId = c.Id,
-                                    CustomerName = c.Name,
-                                    Node = node
+                                    ["CustomerId"] = c.Id,
+                                    ["CustomerName"] = c.Name,
+                                    ["Level"] = 0
                                 }
                             )
                         }

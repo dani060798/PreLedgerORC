@@ -1,6 +1,6 @@
 (function () {
     // --------------------------
-    // Theme toggle (falls vorhanden)
+    // Theme toggle
     // --------------------------
     const themeToggle = document.getElementById("themeToggle");
     if (themeToggle) {
@@ -46,10 +46,8 @@
         const key = d.getAttribute("data-node-key");
         if (!key) return;
 
-        // restore
         if (openSet.has(key)) d.open = true;
 
-        // update on toggle
         d.addEventListener("toggle", () => {
             if (d.open) openSet.add(key);
             else openSet.delete(key);
@@ -58,13 +56,52 @@
     });
 
     // --------------------------
-    // Context menu + actions forms
+    // Context menus (3 separate)
     // --------------------------
-    const ctxMenu = document.getElementById("contextMenu");
+    const menuFolder = document.getElementById("ctxMenuFolder");
+    const menuNote = document.getElementById("ctxMenuNote");
+    const menuDoc = document.getElementById("ctxMenuDoc");
+
+    let currentCtx = null;
+
+    function hideMenus() {
+        [menuFolder, menuNote, menuDoc].forEach(m => { if (m) m.hidden = true; });
+        currentCtx = null;
+    }
+
+    function showMenu(menu, x, y, ctx) {
+        hideMenus();
+        if (!menu) return;
+        currentCtx = ctx;
+        menu.style.left = x + "px";
+        menu.style.top = y + "px";
+        menu.hidden = false;
+    }
+
+    document.addEventListener("click", hideMenus);
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") hideMenus(); });
+
+    // --------------------------
+    // Forms (existing + new)
+    // --------------------------
     const formCreateFolder = document.getElementById("ctxCreateFolderForm");
     const formCreateNotes = document.getElementById("ctxCreateNotesForm");
     const formDeleteNote = document.getElementById("ctxDeleteNoteForm");
+    const formMoveNote = document.getElementById("ctxMoveNoteForm");
 
+    const formRenameNote = document.getElementById("ctxRenameNoteForm");
+    const formRenameFolder = document.getElementById("ctxRenameFolderForm");
+    const formDeleteFolder = document.getElementById("ctxDeleteFolderForm");
+
+    const formRenameDoc = document.getElementById("ctxRenameDocumentForm");
+    const formDeleteDoc = document.getElementById("ctxDeleteDocumentForm");
+    const formMoveDoc = document.getElementById("ctxMoveDocumentForm");
+
+    // NEW: Customer (DB) rename/delete forms
+    const formRenameCustomer = document.getElementById("ctxRenameCustomerForm");
+    const formDeleteCustomer = document.getElementById("ctxDeleteCustomerForm");
+
+    // Inputs (existing)
     const ctxCustomerIdFolder = document.getElementById("ctxCustomerId_CreateFolder");
     const ctxFolderName = document.getElementById("ctxFolderName");
     const ctxParentRelFolder = document.getElementById("ctxParentRelPath_CreateFolder");
@@ -76,105 +113,247 @@
     const ctxCustomerIdDeleteNote = document.getElementById("ctxCustomerId_DeleteNote");
     const ctxRelPathDeleteNote = document.getElementById("ctxRelPath_DeleteNote");
 
-    let currentCtx = null;
+    const moveCustomerId = document.getElementById("ctxCustomerId_MoveNote");
+    const moveSourceRel = document.getElementById("ctxSourceRelPath_MoveNote");
+    const moveTargetFolderRel = document.getElementById("ctxTargetFolderRelPath_MoveNote");
 
-    function hideCtx() {
-        if (!ctxMenu) return;
-        ctxMenu.hidden = true;
-        currentCtx = null;
+    // Inputs (new)
+    const ctxCustomerIdRenameNote = document.getElementById("ctxCustomerId_RenameNote");
+    const ctxRelPathRenameNote = document.getElementById("ctxRelPath_RenameNote");
+    const ctxNewNameRenameNote = document.getElementById("ctxNewName_RenameNote");
+
+    const ctxCustomerIdRenameFolder = document.getElementById("ctxCustomerId_RenameFolder");
+    const ctxRelPathRenameFolder = document.getElementById("ctxRelPath_RenameFolder");
+    const ctxNewNameRenameFolder = document.getElementById("ctxNewName_RenameFolder");
+
+    const ctxCustomerIdDeleteFolder = document.getElementById("ctxCustomerId_DeleteFolder");
+    const ctxRelPathDeleteFolder = document.getElementById("ctxRelPath_DeleteFolder");
+
+    const ctxDocIdRename = document.getElementById("ctxDocumentId_RenameDocument");
+    const ctxDocNewName = document.getElementById("ctxNewName_RenameDocument");
+
+    const ctxDocIdDelete = document.getElementById("ctxDocumentId_DeleteDocument");
+
+    const ctxCustomerIdMoveDoc = document.getElementById("ctxCustomerId_MoveDocument");
+    const ctxDocIdMoveDoc = document.getElementById("ctxDocumentId_MoveDocument");
+    const ctxTargetFolderMoveDoc = document.getElementById("ctxTargetFolderId_MoveDocument");
+
+    // NEW: Customer inputs
+    const ctxCustomerIdRenameCustomer = document.getElementById("ctxCustomerId_RenameCustomer");
+    const ctxNewNameRenameCustomer = document.getElementById("ctxNewName_RenameCustomer");
+    const ctxCustomerIdDeleteCustomer = document.getElementById("ctxCustomerId_DeleteCustomer");
+
+    // --------------------------
+    // IMPORTANT FIX:
+    // Use ONE global contextmenu handler + choose the correct target via closest()
+    // (prevents docs/notes showing folder menu due to <details data-node-type="folder">)
+    // --------------------------
+    function getCtxTarget(startEl) {
+        // Priority: doc > note > folder summary (drop-target) > customer row
+        return (
+            startEl.closest(".tree-doc") ||
+            startEl.closest(".tree-note") ||
+            startEl.closest(".drop-target") ||
+            startEl.closest(".customer-row")
+        );
     }
 
-    function showCtx(x, y, ctx) {
-        if (!ctxMenu) return;
-        currentCtx = ctx;
+    document.addEventListener("contextmenu", (e) => {
+        const target = getCtxTarget(e.target);
+        if (!target) return;
 
-        ctxMenu.style.left = x + "px";
-        ctxMenu.style.top = y + "px";
-        ctxMenu.hidden = false;
-    }
+        e.preventDefault();
 
-    document.addEventListener("click", () => hideCtx());
-    document.addEventListener("keydown", (e) => { if (e.key === "Escape") hideCtx(); });
+        // Customer root: show folder menu but with relPath = "" (root)
+        if (target.classList.contains("customer-row")) {
+            const customerId = target.getAttribute("data-customer-id") || "";
+            // Only if we actually have the ID; otherwise don't break anything
+            if (!customerId) return;
+            showMenu(menuFolder, e.pageX, e.pageY, { nodeType: "customer", customerId, relPath: "", docId: "" });
+            return;
+        }
 
-    // Attach contextmenu to folder + note + customer rows
-    document.querySelectorAll("[data-node-type]").forEach(el => {
-        el.addEventListener("contextmenu", (e) => {
-            e.preventDefault();
+        // Folder summary
+        if (target.classList.contains("drop-target")) {
+            const customerId = target.getAttribute("data-customer-id") || "";
+            const relPath = target.getAttribute("data-relpath") || "";
+            showMenu(menuFolder, e.pageX, e.pageY, { nodeType: "folder", customerId, relPath, docId: "" });
+            return;
+        }
 
-            const nodeType = el.getAttribute("data-node-type");
-            const customerId = el.getAttribute("data-customer-id");
-            const relPath = el.getAttribute("data-relpath") || "";
+        // Note
+        if (target.classList.contains("tree-note")) {
+            const customerId = target.getAttribute("data-customer-id") || "";
+            const relPath = target.getAttribute("data-relpath") || "";
+            showMenu(menuNote, e.pageX, e.pageY, { nodeType: "note", customerId, relPath, docId: "" });
+            return;
+        }
 
-            showCtx(e.pageX, e.pageY, { nodeType, customerId, relPath });
-        });
-    });
+        // Doc
+        if (target.classList.contains("tree-doc")) {
+            const customerId = target.getAttribute("data-customer-id") || "";
+            const docId = target.getAttribute("data-doc-id") || "";
+            showMenu(menuDoc, e.pageX, e.pageY, { nodeType: "doc", customerId, relPath: "", docId });
+            return;
+        }
+    }, true); // capture = true helps with nested elements
 
-    if (ctxMenu) {
-        ctxMenu.addEventListener("click", (e) => {
+    // --------------------------
+    // Menu click wiring
+    // --------------------------
+    function wireMenu(menu) {
+        if (!menu) return;
+
+        menu.addEventListener("click", (e) => {
             const btn = e.target.closest("button[data-action]");
             if (!btn || !currentCtx) return;
 
             const action = btn.getAttribute("data-action");
 
-            // Create Folder
+            // Folder actions (also for customer root create)
             if (action === "create-folder") {
                 const name = prompt("Folder Name:");
-                if (!name) return hideCtx();
+                if (!name) return hideMenus();
+                if (!formCreateFolder || !ctxCustomerIdFolder || !ctxFolderName || !ctxParentRelFolder) return hideMenus();
 
-                if (!formCreateFolder) return hideCtx();
                 ctxCustomerIdFolder.value = currentCtx.customerId;
                 ctxFolderName.value = name;
-                ctxParentRelFolder.value = (currentCtx.nodeType === "folder" ? currentCtx.relPath : "");
+
+                // If right-click on customer row => root
+                ctxParentRelFolder.value = (currentCtx.nodeType === "folder") ? (currentCtx.relPath || "") : "";
                 formCreateFolder.submit();
                 return;
             }
 
-            // Create Notes
             if (action === "create-notes") {
                 const title = prompt("Notes Titel (optional):") || "";
-                if (!formCreateNotes) return hideCtx();
+                if (!formCreateNotes || !ctxCustomerIdNotes || !ctxNotesTitle || !ctxParentRelNotes) return hideMenus();
 
                 ctxCustomerIdNotes.value = currentCtx.customerId;
                 ctxNotesTitle.value = title;
-                ctxParentRelNotes.value = (currentCtx.nodeType === "folder" ? currentCtx.relPath : "");
+
+                // If right-click on customer row => root
+                ctxParentRelNotes.value = (currentCtx.nodeType === "folder") ? (currentCtx.relPath || "") : "";
                 formCreateNotes.submit();
                 return;
             }
 
-            // Delete Note (only on note nodes)
-            if (action === "delete-note") {
-                if (currentCtx.nodeType !== "note") return hideCtx();
-                if (!confirm("Note wirklich löschen?")) return hideCtx();
+            if (action === "rename-folder") {
+                // NEW: Customer rename (DB)
+                if (currentCtx.nodeType === "customer") {
+                    const newName = prompt("Neuer Kundenname:");
+                    if (!newName) return hideMenus();
+                    if (!formRenameCustomer || !ctxCustomerIdRenameCustomer || !ctxNewNameRenameCustomer) return hideMenus();
 
-                if (!formDeleteNote) return hideCtx();
+                    ctxCustomerIdRenameCustomer.value = currentCtx.customerId;
+                    ctxNewNameRenameCustomer.value = newName;
+                    formRenameCustomer.submit();
+                    return;
+                }
+
+                // Do not rename "customer root"
+                if (currentCtx.nodeType !== "folder") return hideMenus();
+
+                const newName = prompt("Neuer Ordnername:");
+                if (!newName) return hideMenus();
+                if (!formRenameFolder || !ctxCustomerIdRenameFolder || !ctxRelPathRenameFolder || !ctxNewNameRenameFolder) return hideMenus();
+
+                ctxCustomerIdRenameFolder.value = currentCtx.customerId;
+                ctxRelPathRenameFolder.value = currentCtx.relPath || "";
+                ctxNewNameRenameFolder.value = newName;
+                formRenameFolder.submit();
+                return;
+            }
+
+            if (action === "delete-folder") {
+                // NEW: Customer delete (DB)
+                if (currentCtx.nodeType === "customer") {
+                    if (!confirm("Kunde wirklich löschen? (Nur wenn leer)")) return hideMenus();
+                    if (!formDeleteCustomer || !ctxCustomerIdDeleteCustomer) return hideMenus();
+
+                    ctxCustomerIdDeleteCustomer.value = currentCtx.customerId;
+                    formDeleteCustomer.submit();
+                    return;
+                }
+
+                // Do not delete "customer root"
+                if (currentCtx.nodeType !== "folder") return hideMenus();
+
+                if (!confirm("Ordner inkl. Unterordner, Notes und Dokumente wirklich löschen?")) return hideMenus();
+                if (!formDeleteFolder || !ctxCustomerIdDeleteFolder || !ctxRelPathDeleteFolder) return hideMenus();
+
+                ctxCustomerIdDeleteFolder.value = currentCtx.customerId;
+                ctxRelPathDeleteFolder.value = currentCtx.relPath || "";
+                formDeleteFolder.submit();
+                return;
+            }
+
+            // Note actions
+            if (action === "delete-note") {
+                if (!confirm("Note wirklich löschen?")) return hideMenus();
+                if (!formDeleteNote || !ctxCustomerIdDeleteNote || !ctxRelPathDeleteNote) return hideMenus();
+
                 ctxCustomerIdDeleteNote.value = currentCtx.customerId;
-                ctxRelPathDeleteNote.value = currentCtx.relPath;
+                ctxRelPathDeleteNote.value = currentCtx.relPath || "";
                 formDeleteNote.submit();
                 return;
             }
 
-            hideCtx();
+            if (action === "rename-note") {
+                const newName = prompt("Neuer Notename (ohne Endung):");
+                if (!newName) return hideMenus();
+                if (!formRenameNote || !ctxCustomerIdRenameNote || !ctxRelPathRenameNote || !ctxNewNameRenameNote) return hideMenus();
+
+                ctxCustomerIdRenameNote.value = currentCtx.customerId;
+                ctxRelPathRenameNote.value = currentCtx.relPath || "";
+                ctxNewNameRenameNote.value = newName;
+                formRenameNote.submit();
+                return;
+            }
+
+            // Doc actions
+            if (action === "rename-document") {
+                const newName = prompt("Neuer Dateiname:");
+                if (!newName) return hideMenus();
+                if (!formRenameDoc || !ctxDocIdRename || !ctxDocNewName) return hideMenus();
+
+                ctxDocIdRename.value = currentCtx.docId || "";
+                ctxDocNewName.value = newName;
+                formRenameDoc.submit();
+                return;
+            }
+
+            if (action === "delete-document") {
+                if (!confirm("Dokument wirklich löschen?")) return hideMenus();
+                if (!formDeleteDoc || !ctxDocIdDelete) return hideMenus();
+
+                ctxDocIdDelete.value = currentCtx.docId || "";
+                formDeleteDoc.submit();
+                return;
+            }
+
+            hideMenus();
         });
     }
 
-    // --------------------------
-    // Drag & Drop notes between folders
-    // --------------------------
-    const moveForm = document.getElementById("ctxMoveNoteForm");
-    const moveCustomerId = document.getElementById("ctxCustomerId_MoveNote");
-    const moveSourceRel = document.getElementById("ctxSourceRelPath_MoveNote");
-    const moveTargetFolderRel = document.getElementById("ctxTargetFolderRelPath_MoveNote");
+    wireMenu(menuFolder);
+    wireMenu(menuNote);
+    wireMenu(menuDoc);
 
+    // --------------------------
+    // Drag & Drop notes + docs between folders
+    // --------------------------
     let dragData = null;
 
+    // Notes draggable (existing behavior)
     document.querySelectorAll(".draggable-note").forEach(a => {
         a.addEventListener("dragstart", (e) => {
             const customerId = a.getAttribute("data-customer-id");
             const relPath = a.getAttribute("data-relpath");
-            dragData = { customerId, relPath };
+            dragData = { kind: "note", customerId, relPath };
 
             e.dataTransfer.effectAllowed = "move";
-            try { e.dataTransfer.setData("text/plain", relPath); } catch { }
+            try { e.dataTransfer.setData("text/plain", relPath || ""); } catch { }
             a.classList.add("dragging");
         });
 
@@ -185,12 +364,33 @@
         });
     });
 
-    // Drop targets: folder summaries + customer summaries (root)
+    // Docs draggable
+    document.querySelectorAll(".tree-doc").forEach(d => {
+        d.setAttribute("draggable", "true");
+
+        d.addEventListener("dragstart", (e) => {
+            const customerId = d.getAttribute("data-customer-id");
+            const docId = d.getAttribute("data-doc-id");
+            dragData = { kind: "doc", customerId, docId };
+
+            e.dataTransfer.effectAllowed = "move";
+            try { e.dataTransfer.setData("text/plain", docId || ""); } catch { }
+            d.classList.add("dragging");
+        });
+
+        d.addEventListener("dragend", () => {
+            d.classList.remove("dragging");
+            dragData = null;
+            document.querySelectorAll(".drop-over").forEach(x => x.classList.remove("drop-over"));
+        });
+    });
+
+    // Drop targets: folder summaries + customer rows (root)
     document.querySelectorAll(".drop-target, .customer-row").forEach(t => {
         t.addEventListener("dragover", (e) => {
             if (!dragData) return;
             const cid = t.getAttribute("data-customer-id");
-            if (cid !== dragData.customerId) return; // only within same customer
+            if (cid !== dragData.customerId) return;
             e.preventDefault();
             t.classList.add("drop-over");
             e.dataTransfer.dropEffect = "move";
@@ -199,7 +399,7 @@
         t.addEventListener("dragleave", () => t.classList.remove("drop-over"));
 
         t.addEventListener("drop", (e) => {
-            if (!dragData || !moveForm) return;
+            if (!dragData) return;
             const cid = t.getAttribute("data-customer-id");
             if (cid !== dragData.customerId) return;
 
@@ -209,11 +409,27 @@
             const nodeType = t.getAttribute("data-node-type");
             const targetRel = (nodeType === "folder") ? (t.getAttribute("data-relpath") || "") : "";
 
-            moveCustomerId.value = dragData.customerId;
-            moveSourceRel.value = dragData.relPath;
-            moveTargetFolderRel.value = targetRel;
+            if (dragData.kind === "note") {
+                if (!formMoveNote || !moveCustomerId || !moveSourceRel || !moveTargetFolderRel) return;
 
-            moveForm.submit();
+                moveCustomerId.value = dragData.customerId;
+                moveSourceRel.value = dragData.relPath;
+                moveTargetFolderRel.value = targetRel;
+
+                formMoveNote.submit();
+                return;
+            }
+
+            if (dragData.kind === "doc") {
+                if (!formMoveDoc || !ctxCustomerIdMoveDoc || !ctxDocIdMoveDoc || !ctxTargetFolderMoveDoc) return;
+
+                ctxCustomerIdMoveDoc.value = dragData.customerId;
+                ctxDocIdMoveDoc.value = dragData.docId;
+                ctxTargetFolderMoveDoc.value = targetRel || "root";
+
+                formMoveDoc.submit();
+                return;
+            }
         });
     });
 

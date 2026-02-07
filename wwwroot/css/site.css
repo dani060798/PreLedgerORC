@@ -511,3 +511,33 @@ html[data-theme="dark"] .badge-soft {
     font-weight: 600;
     font-size: 15px;
 }
+
+/* --- Documents in tree: small inline open link --- */
+.tree-doc {
+    justify-content: space-between;
+}
+
+.tree-doc-actions {
+    margin-left: 10px;
+    display: flex;
+    gap: 8px;
+}
+
+.tree-doc-open {
+    font-size: 12px;
+    color: var(--muted);
+    text-decoration: none;
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(0,0,0,0.02);
+}
+
+html[data-theme="dark"] .tree-doc-open {
+    background: rgba(255,255,255,0.04);
+}
+
+.tree-doc-open:hover {
+    text-decoration: none;
+    color: var(--text);
+}
